@@ -1,4 +1,5 @@
 import React from "react";
+import logo from "../landing_page/assests/images/Zerodhalogo.jpeg";
 
 function Footer() {
   return (
@@ -6,7 +7,11 @@ function Footer() {
       <div className="container border-top mt-5">
         <div className="row mt-5">
           <div className="col">
-            <img src="media/images/logo.svg" style={{ width: "50%" }} />
+            <img 
+            src={logo}
+            alt="Zerodha logo"
+            style={{ width: "150px" }} 
+            />
             <p>
               &copy; 2010 - 2024, Not Zerodha Broking Ltd. All rights reserved.
             </p>

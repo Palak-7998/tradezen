@@ -1,46 +1,29 @@
 import React from "react";
+import smallcase from "../assests/images/smallcase.jpeg";
+import sensibull from "../assests/images/sensibul.jpeg";
+import tijori from "../assests/images/tijori.jpeg";
+import streak from "../assests/images/streak.jpeg";
+import ditto from "../assests/images/ditto.jpeg";
 
 function Universe() {
   return (
-    <div className="container mt-5">
-      <div className="row text-center">
-        <h1>The Zerodha Universe</h1>
-        <p>
-          Extend your trading and investment experience even further with our
-          partner platforms
-        </p>
+    <div className="container mt-5 text-center">
+      <h1>The Zerodha Universe</h1>
+      <p className="text-muted">
+        Extend your trading and investment experience even further
+      </p>
 
-        <div className="col-4 p-3 mt-5">
-          <img src="media/images/smallcaseLogo.png" />
-          <p className="text-small text-muted">Thematic investment platform</p>
-        </div>
-        <div className="col-4 p-3 mt-5">
-          <img src="media/images/smallcaseLogo.png" />
-          <p className="text-small text-muted">Thematic investment platform</p>
-        </div>
-        <div className="col-4 p-3 mt-5">
-          <img src="media/images/smallcaseLogo.png" />
-          <p className="text-small text-muted">Thematic investment platform</p>
-        </div>
-        <div className="col-4 p-3 mt-5">
-          <img src="media/images/smallcaseLogo.png" />
-          <p className="text-small text-muted">Thematic investment platform</p>
-        </div>
-        <div className="col-4 p-3 mt-5">
-          <img src="media/images/smallcaseLogo.png" />
-          <p className="text-small text-muted">Thematic investment platform</p>
-        </div>
-        <div className="col-4 p-3 mt-5">
-          <img src="media/images/smallcaseLogo.png" />
-          <p className="text-small text-muted">Thematic investment platform</p>
-        </div>
-        <button
-          className="p-2 btn btn-primary fs-5 mb-5"
-          style={{ width: "20%", margin: "0 auto" }}
-        >
-          Signup Now
-        </button>
+      <div className="row mt-5">
+        {[smallcase, sensibull, tijori, streak, ditto].map((logo, i) => (
+          <div className="col-4 p-4" key={i}>
+            <img src={logo} style={{ width: "150px" }} />
+          </div>
+        ))}
       </div>
+
+      <button className="btn btn-primary mt-5 px-4 py-2">
+        Sign up for free
+      </button>
     </div>
   );
 }

@@ -5,56 +5,68 @@ import LeftSection from "./LeftSection";
 import RightSection from "./RightSection";
 import Universe from "./Universe";
 
-import Navbar from "../Navbar";
-import Footer from "../Footer";
+import kite from "../assests/images/kite.jpeg";
+import consoleImg from "../assests/images/console.jpeg";
+import coin from "../assests/images/coin.jpeg";
+import kiteconnect from "../assests/images/kiteconnect.jpeg";
+import varsity from "../assests/images/varsitym.jpeg";
+import googleplay from "../assests/images/googleplay.jpeg";
+import appstore from "../assests/images/appstore.jpeg";
 
 function PricingPage() {
   return (
     <>
       <Hero />
+
+      {/* Kite */}
       <LeftSection
-        imageURL="media/images/kite.png"
+        image={kite}
         productName="Kite"
-        productDesription="Our ultra-fast flagship trading platform with streaming market data, advanced charts, an elegant UI, and more. Enjoy the Kite experience seamlessly on your Android and iOS devices."
-        tryDemo=""
-        learnMore=""
-        googlePlay=""
-        appStore=""
+        productDesription="Our ultra-fast flagship trading platform with streaming market data, advanced charts, an elegant UI, and more."
+        tryDemo="#"
+        learnMore="#"
+        googlePlay={googleplay}
+        appStore={appstore}
       />
+
+      {/* Console */}
       <RightSection
-        imageURL="media/images/console.png"
+        image={consoleImg}
         productName="Console"
-        productDesription="The central dashboard for your Zerodha account. Gain insights into your trades and investments with in-depth reports and visualisations."
-        learnMore=""
+        productDesription="The central dashboard for your Zerodha account. Gain insights into your trades and investments."
+        learnMore="#"
       />
+
+      {/* Coin */}
       <LeftSection
-        imageURL="media/images/coin.png"
+        image={coin}
         productName="Coin"
-        productDesription="Buy direct mutual funds online, commission-free, delivered directly to your Demat account. Enjoy the investment experience on your Android and iOS devices."
-        tryDemo=""
-        learnMore=""
-        googlePlay=""
-        appStore=""
+        productDesription="Buy direct mutual funds online, commission-free, delivered directly to your Demat account."
+        googlePlay={googleplay}
+        appStore={appstore}
       />
+
+      {/* Kite Connect */}
       <RightSection
-        imageURL="media/images/kiteconnect.png"
+        image={kiteconnect}
         productName="Kite Connect API"
-        productDesription="Build powerful trading platforms and experiences with our super simple HTTP/JSON APIs. If you are a startup, build your investment app and showcase it to our clientbase."
-        learnMore=""
+        productDesription="Build powerful trading platforms and experiences with our super simple HTTP/JSON APIs."
+        learnMore="#"
       />
+
+      {/* Varsity */}
       <LeftSection
-        imageURL="media/images/varsity.png"
+        image={varsity}
         productName="Varsity mobile"
-        productDesription="An easy to grasp, collection of stock market lessons with in-depth coverage and illustrations. Content is broken down into bite-size cards to help you learn on the go."
-        tryDemo=""
-        learnMore=""
-        googlePlay=""
-        appStore=""
+        productDesription="An easy to grasp collection of stock market lessons with in-depth coverage."
+        googlePlay={googleplay}
+        appStore={appstore}
       />
+
       <p className="text-center mt-5 mb-5">
-        Want to know more about our technology stack? Check out the Zerodha.tech
-        blog.
+        Want to know more about our technology stack? Check out the Zerodha.tech blog.
       </p>
+
       <Universe />
     </>
   );

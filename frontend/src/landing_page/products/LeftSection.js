@@ -1,7 +1,7 @@
 import React from "react";
 
 function LeftSection({
-  imageURL,
+  image,
   productName,
   productDesription,
   tryDemo,
@@ -11,31 +11,47 @@ function LeftSection({
 }) {
   return (
     <div className="container mt-5">
-      <div className="row">
-        <div className="col-6">
-          <img src={imageURL} />
+      <div className="row align-items-center">
+
+        {/* Image */}
+        <div className="col-6 text-center">
+          <img src={image} alt={productName} style={{ width: "90%" }} />
         </div>
-        <div className="col-6 p-5 mt-5">
+
+        {/* Content */}
+        <div className="col-6 p-5">
           <h1>{productName}</h1>
-          <p>{productDesription}</p>
-          <div>
-            <a href={tryDemo}>Try Demo</a>
-            <a href={learnMore} style={{ marginLeft: "50px" }}>
-              Learn More
-            </a>
-          </div>
+          <p className="text-muted">{productDesription}</p>
+
           <div className="mt-3">
-            <a href={googlePlay}>
-              <img src="media/images/googlePlayBadge.svg" />
-            </a>
-            <a href={appStore}>
-              <img
-                src="media/images/appstoreBadge.svg"
-                style={{ marginLeft: "50px" }}
-              />
-            </a>
+            {tryDemo && <a href={tryDemo}>Try demo →</a>}
+            {learnMore && (
+              <a href={learnMore} style={{ marginLeft: "30px" }}>
+                Learn more →
+              </a>
+            )}
           </div>
+
+          {(googlePlay || appStore) && (
+            <div className="mt-4">
+              {googlePlay && (
+                <img
+                  src={googlePlay}
+                  alt="Google Play"
+                  style={{ width: "150px" }}
+                />
+              )}
+              {appStore && (
+                <img
+                  src={appStore}
+                  alt="App Store"
+                  style={{ width: "150px", marginLeft: "20px" }}
+                />
+              )}
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   );
