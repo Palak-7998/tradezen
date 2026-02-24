@@ -3,16 +3,13 @@ import React from "react";
 function CreateTicket() {
   return (
     <div className="container">
-
       <h1 className="fs-3 mt-5 mb-4">
         To create a ticket, select a relevant topic
       </h1>
 
       <div className="row">
-
         {/* LEFT SIDE */}
         <div className="col-6">
-
           <Section
             title="Account Opening"
             items={[
@@ -44,12 +41,10 @@ function CreateTicket() {
               "Alerts and Nudges",
             ]}
           />
-
         </div>
 
         {/* RIGHT SIDE */}
         <div className="col-6">
-
           <Section
             title="Funds"
             items={[
@@ -79,9 +74,7 @@ function CreateTicket() {
               "Payments and orders",
             ]}
           />
-
         </div>
-
       </div>
     </div>
   );
@@ -97,17 +90,19 @@ function Section({ title, items }) {
       </h5>
 
       {items.map((item, index) => (
-        <a
+        <button
           key={index}
-          href="#"
+          type="button"
+          className="btn btn-link p-0"
           style={{
             display: "block",
+            textAlign: "left",
             textDecoration: "none",
             lineHeight: "2.3",
           }}
         >
           {item}
-        </a>
+        </button>
       ))}
     </div>
   );

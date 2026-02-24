@@ -14,11 +14,15 @@ function Universe() {
       </p>
 
       <div className="row mt-5">
-        {[smallcase, sensibull, tijori, streak, ditto].map((logo, i) => (
-          <div className="col-4 p-4" key={i}>
-            <img src={logo} style={{ width: "150px" }} />
-          </div>
-        ))}
+{[smallcase, sensibull, tijori, streak, ditto].map((logo, i) => (
+  <div className="col-4 p-4" key={i}>
+    <img
+      src={logo}
+      alt="Zerodha partner"
+      style={{ width: "150px" }}
+    />
+  </div>
+))}
       </div>
 
       <button className="btn btn-primary mt-5 px-4 py-2">

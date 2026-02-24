@@ -38,7 +38,6 @@ function Stats() {
           {/* RIGHT IMAGE + LINKS */}
           <div className="col-md-6 text-center">
 
-            {/* MAIN IMAGE */}
             <img
               src={varietyImg}
               alt="Zerodha products"
@@ -46,20 +45,24 @@ function Stats() {
               style={{ maxWidth: "90%" }}
             />
 
-            {/* LINKS (THIS IS THE IMPORTANT FIX) */}
+            {/* FIXED LINKS */}
             <div className="d-flex justify-content-center gap-4">
-              <a href="#" className="text-decoration-none">
+              <span
+                style={{ color: "#387ed1", cursor: "pointer" }}
+              >
                 Explore our products →
-              </a>
-              <a href="#" className="text-decoration-none">
+              </span>
+
+              <span
+                style={{ color: "#387ed1", cursor: "pointer" }}
+              >
                 Try Kite demo →
-              </a>
+              </span>
             </div>
 
           </div>
         </div>
 
-        {/* ECOSYSTEM CIRCLE IMAGE */}
         <div className="text-center mt-5">
           <img
             src={varBotImg}
