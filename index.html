@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradeZen - Stock Trading & Portfolio Platform</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            trade: {
+              bg: '#0b0f19',
+              card: '#111827',
+              cardHover: '#162032',
+              border: '#1f293d',
+              accent: '#38bdf8',
+              emerald: '#10b981',
+              rose: '#f43f5e'
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- React 18 & ReactDOM Production CDNs -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel Standalone CDN for on-the-fly JSX transpilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono-numbers {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Custom sleek dark scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    @keyframes pulseGreen {
+      0% { background-color: rgba(16, 185, 129, 0.35); }
+      100% { background-color: transparent; }
+    }
+    @keyframes pulseRed {
+      0% { background-color: rgba(244, 63, 94, 0.35); }
+      100% { background-color: transparent; }
+    }
+    .flash-green {
+      animation: pulseGreen 0.75s ease-out;
+    }
+    .flash-red {
+      animation: pulseRed 0.75s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-[#0b0f19] text-slate-100 min-h-screen">
+  <div id="root"></div>
+
+  <!-- Main React Application Script -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // --- INITIAL MARKET STOCKS DATA ---
+    const INITIAL_STOCKS = [
+      {
+        symbol: "TATAMOTORS",
+        name: "Tata Motors Ltd",
+        price: 980.50,
+        change: 14.20,
+        changePct: 1.47,
+        history: [942, 948, 955, 950, 964, 972, 980.50]
+      },
+      {
+        symbol: "RELIANCE",
+        name: "Reliance Industries",
+        price: 2750.00,
+        change: -18.50,
+        changePct: -0.67,
+        history: [2785, 2790, 2775, 2760, 2748, 2740, 2750.00]
+      },
+      {
+        symbol: "INFY",
+        name: "Infosys Limited",
+        price: 1860.00,
+        change: 12.00,
+        changePct: 0.65,
+        history: [1818, 1830, 1842, 1850, 1845, 1852, 1860.00]
+      },
+      {
+        symbol: "HDFCBANK",
+        name: "HDFC Bank Ltd",
+        price: 1720.00,
+        change: -5.40,
+        changePct: -0.31,
+        history: [1736, 1730, 1724, 1728, 1721, 1717, 1720.00]
+      },
+      {
+        symbol: "TCS",
+        name: "Tata Consultancy Services",
+        price: 4120.00,
+        change: 32.50,
+        changePct: 0.79,
+        history: [4050, 4075, 4060, 4090, 4105, 4110, 4120.00]
+      }
+    ];
+
+    function TradeZenApp() {
+      // 1. Stock Market State
+      const [stocks, setStocks] = useState(INITIAL_STOCKS);
+      const [selectedSymbol, setSelectedSymbol] = useState("TATAMOTORS");
+      const [searchQuery, setSearchQuery] = useState("");
+      const [tickFlashes, setTickFlashes] = useState({});
+
+      // 2. User Account & Portfolio State
+      // Defaults aligned with the live production dashboard
+      const [cashBalance, setCashBalance] = useState(122897.95);
+      const [holdings, setHoldings] = useState([
+        { symbol: "TATAMOTORS", shares: 18, avgPrice: 962.40 },
+        { symbol: "INFY", shares: 7, avgPrice: 1845.00 }
+      ]);
+      const [transactions, setTransactions] = useState([
+        { id: "ORD-9481", time: "10:14 AM", type: "BUY", symbol: "TATAMOTORS", shares: 18, price: 962.40 },
+        { id: "ORD-9478", time: "11:05 AM", type: "BUY", symbol: "INFY", shares: 7, price: 1845.00 },
+        { id: "ORD-9472", time: "09:45 AM", type: "SELL", symbol: "TCS", shares: 5, price: 4095.00 }
+      ]);
+
+      // 3. Trade Execution Widget Form State
+      const [orderType, setOrderType] = useState("BUY"); // 'BUY' | 'SELL'
+      const [quantity, setQuantity] = useState(5);
+      const [toastMsg, setToastMsg] = useState("");
+      const [activeTab, setActiveTab] = useState("HOLDINGS"); // 'HOLDINGS' | 'HISTORY'
+
+      // Currently active stock object
+      const currentStock = useMemo(() => {
+        return stocks.find(s => s.symbol === selectedSymbol) || stocks[0];
+      }, [stocks, selectedSymbol]);
+
+      // Toast notification helper
+      const showToast = (message) => {
+        setToastMsg(message);
+        setTimeout(() => setToastMsg(""), 3800);
+      };
+
+      // --- SIMULATED REAL-TIME WEBSOCKET TICKS (Every 2.4s) ---
+      useEffect(() => {
+        const interval = setInterval(() => {
+          const flashes = {};
+
+          setStocks(prevStocks => {
+            return prevStocks.map(stock => {
+              // 50% probability of ticking on any interval
+              if (Math.random() > 0.55) return stock;
+
+              const isUp = Math.random() > 0.48;
+              const deltaPct = (Math.random() * 0.0035 + 0.0005) * (isUp ? 1 : -1);
+              const newPrice = Number((stock.price * (1 + deltaPct)).toFixed(2));
+              const newChange = Number((newPrice - stock.history[0]).toFixed(2));
+              const newPct = Number(((newChange / stock.history[0]) * 100).toFixed(2));
+              
+              const updatedHistory = [...stock.history.slice(1), newPrice];
+              flashes[stock.symbol] = isUp ? 'flash-green' : 'flash-red';
+
+              return {
+                ...stock,
+                price: newPrice,
+                change: newChange,
+                changePct: newPct,
+                history: updatedHistory
+              };
+            });
+          });
+
+          setTickFlashes(flashes);
+          setTimeout(() => setTickFlashes({}), 750);
+        }, 2400);
+
+        return () => clearInterval(interval);
+      }, []);
+
+      // --- PORTFOLIO DYNAMIC CALCULATIONS ---
+      // Current valuation of all owned stocks
+      const portfolioStockValue = useMemo(() => {
+        return holdings.reduce((total, item) => {
+          const liveStock = stocks.find(s => s.symbol === item.symbol);
+          const livePrice = liveStock ? liveStock.price : item.avgPrice;
+          return total + (item.shares * livePrice);
+        }, 0);
+      }, [holdings, stocks]);
+
+      // Total invested amount
+      const totalInvested = useMemo(() => {
+        return holdings.reduce((total, item) => total + (item.shares * item.avgPrice), 0);
+      }, [holdings]);
+
+      // Net P&L (Profit or Loss)
+      const netProfitLoss = portfolioStockValue - totalInvested;
+      const profitLossPct = totalInvested > 0 ? ((netProfitLoss / totalInvested) * 100).toFixed(2) : 0;
+
+      // Filtered stocks based on search query
+      const filteredStocks = useMemo(() => {
+        return stocks.filter(s => 
+          s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          s.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }, [stocks, searchQuery]);
+
+      // --- TRADE EXECUTION HANDLER ---
+      const handleExecuteTrade = (e) => {
+        e.preventDefault();
+        const tradeQty = parseInt(quantity);
+        if (isNaN(tradeQty) || tradeQty <= 0) {
+          showToast("Please enter a valid share quantity greater than 0.");
+          return;
+        }
+
+        const totalOrderValue = tradeQty * currentStock.price;
+
+        if (orderType === "BUY") {
+          if (totalOrderValue > cashBalance) {
+            showToast(`Insufficient Funds! Required: ₹${totalOrderValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+            return;
+          }
+
+          // Deduct from cash balance
+          setCashBalance(prev => prev - totalOrderValue);
+
+          // Update holdings
+          setHoldings(prevHoldings => {
+            const existing = prevHoldings.find(h => h.symbol === currentStock.symbol);
+            if (existing) {
+              const totalShares = existing.shares + tradeQty;
+              const newAvgPrice = ((existing.shares * existing.avgPrice) + totalOrderValue) / totalShares;
+              return prevHoldings.map(h => 
+                h.symbol === currentStock.symbol 
+                  ? { ...h, shares: totalShares, avgPrice: Number(newAvgPrice.toFixed(2)) }
+                  : h
+              );
+            } else {
+              return [...prevHoldings, { symbol: currentStock.symbol, shares: tradeQty, avgPrice: currentStock.price }];
+            }
+          });
+
+          // Log transaction
+          const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+          setTransactions(prev => [
+            {
+              id: orderId,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              type: "BUY",
+              symbol: currentStock.symbol,
+              shares: tradeQty,
+              price: currentStock.price
+            },
+            ...prev
+          ]);
+
+          showToast(`SUCCESS: Bought ${tradeQty} shares of ${currentStock.symbol} at ₹${currentStock.price.toFixed(2)}`);
+
+        } else if (orderType === "SELL") {
+          const existing = holdings.find(h => h.symbol === currentStock.symbol);
+          if (!existing || existing.shares < tradeQty) {
+            showToast(`Cannot Sell! You only own ${existing ? existing.shares : 0} shares of ${currentStock.symbol}.`);
+            return;
+          }
+
+          // Credit cash balance
+          setCashBalance(prev => prev + totalOrderValue);
+
+          // Deduct from holdings
+          setHoldings(prevHoldings => {
+            return prevHoldings
+              .map(h => h.symbol === currentStock.symbol ? { ...h, shares: h.shares - tradeQty } : h)
+              .filter(h => h.shares > 0);
+          });
+
+          // Log transaction
+          const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+          setTransactions(prev => [
+            {
+              id: orderId,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              type: "SELL",
+              symbol: currentStock.symbol,
+              shares: tradeQty,
+              price: currentStock.price
+            },
+            ...prev
+          ]);
+
+          showToast(`SUCCESS: Sold ${tradeQty} shares of ${currentStock.symbol} at ₹${currentStock.price.toFixed(2)}`);
+        }
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-[#0b0f19] text-slate-100">
+          
+          {/* ================= 1. TOP HEADER & METRICS BANNER ================= */}
+          <header className="bg-[#111827] border-b border-slate-800 px-4 sm:px-6 py-3 sticky top-0 z-30 shadow-md">
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+              
+              {/* Brand Logo & Status */}
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-base shadow-sm">
+                  TZ
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg font-extrabold tracking-tight text-white">TradeZen</span>
+                    <span className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                      <span>LIVE</span>
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Stock Trading & Portfolio Platform</p>
+                </div>
+              </div>
+
+              {/* Real-time Account Metrics Strip */}
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                
+                {/* Available Cash */}
+                <div className="bg-[#1e293b]/70 border border-slate-700/60 rounded-lg px-3.5 py-1.5">
+                  <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Available Cash</span>
+                  <span className="font-mono-numbers font-bold text-sm text-slate-100">
+                    ₹{cashBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Portfolio Stock Value */}
+                <div className="bg-[#1e293b]/70 border border-slate-700/60 rounded-lg px-3.5 py-1.5">
+                  <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Portfolio Stock Value</span>
+                  <span className="font-mono-numbers font-bold text-sm text-slate-100">
+                    ₹{portfolioStockValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Net P&L */}
+                <div className="bg-[#1e293b]/70 border border-slate-700/60 rounded-lg px-3.5 py-1.5">
+                  <span className="text-slate-400 block text-[10px] uppercase tracking-wider">Net P&L</span>
+                  <span className={`font-mono-numbers font-bold text-sm ${netProfitLoss >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {netProfitLoss >= 0 ? '+' : ''}₹{netProfitLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({profitLossPct}%)
+                  </span>
+                </div>
+
+                {/* User Badge: Palak Pal */}
+                <div className="bg-[#1e293b]/70 border border-slate-700/60 rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center font-bold text-xs text-white ring-1 ring-slate-600">
+                    PP
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="font-semibold text-xs leading-tight text-slate-200">Palak Pal</span>
+                    <span className="text-[9px] text-emerald-400 font-mono">DEMO TRADER</span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </header>
+
+          {/* ================= 2. MAIN WORKSPACE (GRID LAYOUT) ================= */}
+          <main className="max-w-7xl mx-auto w-full p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+            
+            {/* --- LEFT COLUMN: WATCHLIST (4 COLS) --- */}
+            <section className="lg:col-span-4 flex flex-col bg-[#111827] rounded-xl border border-slate-800 overflow-hidden shadow-xl">
+              
+              {/* Watchlist Header & Search */}
+              <div className="p-4 border-b border-slate-800 bg-[#141d2e]">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                      <polyline points="16 7 22 7 22 13"></polyline>
+                    </svg>
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">Watchlist</h2>
+                  </div>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono font-medium">
+                    {filteredStocks.length} Stocks
+                  </span>
+                </div>
+                
+                {/* Search Bar */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search stock eg: TATA, INFY..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-slate-700/80 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                  />
+                  <svg className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200 text-xs">
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Stock Items List */}
+              <div className="divide-y divide-slate-800/80 overflow-y-auto max-h-[500px]">
+                {filteredStocks.map(stock => {
+                  const isSelected = stock.symbol === selectedSymbol;
+                  const isGain = stock.change >= 0;
+                  const flashClass = tickFlashes[stock.symbol] || "";
+
+                  return (
+                    <div
+                      key={stock.symbol}
+                      onClick={() => setSelectedSymbol(stock.symbol)}
+                      className={`p-3.5 cursor-pointer transition-all flex items-center justify-between ${flashClass} ${
+                        isSelected 
+                          ? 'bg-[#1e293b] border-l-4 border-cyan-400 shadow-inner' 
+                          : 'hover:bg-[#151f30]'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="font-bold text-sm text-slate-100">{stock.symbol}</span>
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">NSE</span>
+                        </div>
+                        <div className="text-xs text-slate-400 truncate max-w-[150px]">{stock.name}</div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="font-mono-numbers font-bold text-sm text-white">
+                          ₹{stock.price.toFixed(2)}
+                        </div>
+                        <div className={`text-xs font-mono-numbers font-semibold flex items-center justify-end space-x-1 ${isGain ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <span>{isGain ? '▲ +' : '▼ '}{Math.abs(stock.change).toFixed(2)}</span>
+                          <span className={`text-[10px] px-1 rounded ${isGain ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
+                            ({isGain ? '+' : ''}{stock.changePct}%)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+            </section>
+
+            {/* --- RIGHT COLUMN: ACTIVE ASSET, CHART.JS & ORDER EXECUTION (8 COLS) --- */}
+            <section className="lg:col-span-8 flex flex-col space-y-6">
+              
+              {/* Selected Stock Overview Header */}
+              <div className="bg-[#111827] rounded-xl border border-slate-800 p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-2xl font-black text-white tracking-tight">{currentStock.symbol}</h2>
+                    <span className="text-xs bg-slate-800 px-2 py-0.5 rounded text-cyan-400 font-mono font-medium border border-slate-700">
+                      NSE: EQ
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">{currentStock.name}</p>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-2xl font-bold font-mono-numbers text-white tracking-tight">
+                    ₹{currentStock.price.toFixed(2)}
+                  </div>
+                  <div className={`text-xs font-mono-numbers font-semibold ${currentStock.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {currentStock.change >= 0 ? '▲ +' : '▼ '}{currentStock.change.toFixed(2)} ({currentStock.changePct}%)
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono">Simulated Exchange LTP</span>
+                </div>
+              </div>
+
+              {/* Chart.js Dynamic Price Trend */}
+              <div className="bg-[#111827] rounded-xl border border-slate-800 p-4 shadow-xl">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                      <line x1="8" y1="21" x2="16" y2="21"></line>
+                      <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      Price Trend (Chart.js Visualization)
+                    </span>
+                  </div>
+
+                  <span className="text-xs text-emerald-400 font-mono flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>7-Day Tick History</span>
+                  </span>
+                </div>
+
+                {/* Canvas Container */}
+                <div className="h-[220px] w-full">
+                  <StockChartJs currentStock={currentStock} />
+                </div>
+              </div>
+
+              {/* Trade Execution Ticket Widget */}
+              <div className="bg-[#111827] rounded-xl border border-slate-800 p-5 shadow-xl">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+                      Trade Execution Ticket
+                    </h3>
+                    <span className="text-[11px] text-slate-400 font-mono">Asset: {currentStock.symbol} • LTP: ₹{currentStock.price.toFixed(2)}</span>
+                  </div>
+                  
+                  {/* Interactive BUY / SELL Selector Tabs */}
+                  <div className="flex bg-[#0b0f19] p-1 rounded-lg border border-slate-700 text-xs font-bold font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setOrderType("BUY")}
+                      className={`px-4 py-1.5 rounded transition-all ${
+                        orderType === "BUY"
+                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/40'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      BUY
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderType("SELL")}
+                      className={`px-4 py-1.5 rounded transition-all ${
+                        orderType === "SELL"
+                          ? 'bg-rose-600 text-white shadow-md shadow-rose-700/40'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      SELL
+                    </button>
+                  </div>
+                </div>
+
+                <form onSubmit={handleExecuteTrade} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    
+                    {/* Quantity Input with Steppers */}
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1 font-medium">Quantity (Shares)</label>
+                      <div className="flex rounded-lg border border-slate-700 overflow-hidden bg-[#0b0f19]">
+                        <button
+                          type="button"
+                          onClick={() => setQuantity(Math.max(1, (parseInt(quantity) || 1) - 1))}
+                          className="px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                          className="w-full bg-transparent text-center font-mono-numbers text-sm font-bold text-white py-2 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setQuantity((parseInt(quantity) || 1) + 1)}
+                          className="px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Live Valuation Box */}
+                    <div className="bg-[#0b0f19] p-2.5 rounded-lg border border-slate-700/80">
+                      <span className="block text-[10px] text-slate-400 uppercase tracking-wider">Total Valuation</span>
+                      <span className="font-mono-numbers font-bold text-sm text-cyan-400">
+                        ₹{((parseInt(quantity) || 0) * currentStock.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {/* Action Execution Button */}
+                    <div>
+                      <button
+                        type="submit"
+                        className={`w-full py-2.5 rounded-lg font-bold text-sm tracking-wide text-white uppercase transition-all shadow-lg font-mono flex items-center justify-center space-x-1.5 ${
+                          orderType === "BUY"
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 shadow-emerald-950/50'
+                            : 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 shadow-rose-950/50'
+                        }`}
+                      >
+                        <span>Place {orderType} Order</span>
+                      </button>
+                    </div>
+
+                  </div>
+
+                  {/* Quick Lot Presets */}
+                  <div className="flex items-center space-x-2 text-[11px] font-mono text-slate-400 pt-1">
+                    <span>Quick Select:</span>
+                    {[5, 10, 25, 50].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setQuantity(amt)}
+                        className={`px-2 py-0.5 rounded border transition-colors ${
+                          parseInt(quantity) === amt 
+                            ? 'bg-slate-700 border-cyan-400 text-white font-bold' 
+                            : 'bg-[#0b0f19] border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        {amt} Shares
+                      </button>
+                    ))}
+                  </div>
+                </form>
+
+              </div>
+
+            </section>
+
+            {/* ================= 3. PORTFOLIO & RECENT LOGS (FULL 12 COLS) ================= */}
+            <section className="lg:col-span-12 space-y-4">
+              
+              {/* Tab Header Controls */}
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setActiveTab("HOLDINGS")}
+                    className={`text-xs font-bold font-mono tracking-wider transition-all pb-1 ${
+                      activeTab === "HOLDINGS"
+                        ? 'text-cyan-400 border-b-2 border-cyan-400'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Your Portfolio Holdings ({holdings.length})
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("HISTORY")}
+                    className={`text-xs font-bold font-mono tracking-wider transition-all pb-1 ${
+                      activeTab === "HISTORY"
+                        ? 'text-cyan-400 border-b-2 border-cyan-400'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Recent Order History ({transactions.length})
+                  </button>
+                </div>
+
+                <div className="hidden sm:block text-xs font-mono text-slate-400">
+                  Total Invested: <strong className="text-slate-200">₹{totalInvested.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                </div>
+              </div>
+
+              {/* --- TAB 1: HOLDINGS TABLE --- */}
+              {activeTab === "HOLDINGS" && (
+                <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden shadow-xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs font-mono">
+                      <thead className="bg-[#141d2e] text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                        <tr>
+                          <th className="py-3 px-4">Instrument</th>
+                          <th className="py-3 px-4 text-right">Shares Owned</th>
+                          <th className="py-3 px-4 text-right">Avg Buy Price</th>
+                          <th className="py-3 px-4 text-right">LTP (Current)</th>
+                          <th className="py-3 px-4 text-right">Current Value</th>
+                          <th className="py-3 px-4 text-right">Profit / Loss</th>
+                          <th className="py-3 px-4 text-center">Quick Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 font-mono-numbers">
+                        {holdings.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" className="text-center py-8 text-slate-500 font-mono">
+                              No active holdings found. Use the Watchlist & Trade Ticket to buy shares!
+                            </td>
+                          </tr>
+                        ) : (
+                          holdings.map(item => {
+                            const liveStock = stocks.find(s => s.symbol === item.symbol);
+                            const livePrice = liveStock ? liveStock.price : item.avgPrice;
+                            const currentVal = item.shares * livePrice;
+                            const investedVal = item.shares * item.avgPrice;
+                            const pnl = currentVal - investedVal;
+                            const isProfit = pnl >= 0;
+
+                            return (
+                              <tr key={item.symbol} className="hover:bg-[#162032] transition-colors">
+                                <td 
+                                  className="py-3 px-4 font-bold text-white cursor-pointer hover:text-cyan-400"
+                                  onClick={() => setSelectedSymbol(item.symbol)}
+                                  title="Click to view chart"
+                                >
+                                  {item.symbol}
+                                </td>
+                                <td className="py-3 px-4 text-right font-medium text-slate-300">{item.shares}</td>
+                                <td className="py-3 px-4 text-right text-slate-400">₹{item.avgPrice.toFixed(2)}</td>
+                                <td className="py-3 px-4 text-right font-bold text-white">₹{livePrice.toFixed(2)}</td>
+                                <td className="py-3 px-4 text-right text-slate-200">₹{currentVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className={`py-3 px-4 text-right font-bold ${isProfit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {isProfit ? '+' : ''}₹{pnl.toFixed(2)}
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedSymbol(item.symbol);
+                                      setOrderType("SELL");
+                                      setQuantity(item.shares);
+                                    }}
+                                    className="px-2.5 py-1 rounded text-[10px] font-bold bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/20 transition-all"
+                                  >
+                                    Sell All
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* --- TAB 2: ORDER HISTORY TABLE --- */}
+              {activeTab === "HISTORY" && (
+                <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden shadow-xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs font-mono">
+                      <thead className="bg-[#141d2e] text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                        <tr>
+                          <th className="py-3 px-4">Order ID</th>
+                          <th className="py-3 px-4">Timestamp</th>
+                          <th className="py-3 px-4">Type</th>
+                          <th className="py-3 px-4">Instrument</th>
+                          <th className="py-3 px-4 text-right">Shares</th>
+                          <th className="py-3 px-4 text-right">Executed Price</th>
+                          <th className="py-3 px-4 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 font-mono-numbers">
+                        {transactions.map(tx => (
+                          <tr key={tx.id} className="hover:bg-[#162032] transition-colors">
+                            <td className="py-3 px-4 text-slate-400">{tx.id}</td>
+                            <td className="py-3 px-4 text-slate-400">{tx.time}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                tx.type === 'BUY' 
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                              }`}>
+                                {tx.type}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-bold text-white">{tx.symbol}</td>
+                            <td className="py-3 px-4 text-right text-slate-300 font-medium">{tx.shares}</td>
+                            <td className="py-3 px-4 text-right text-white font-bold">₹{tx.price.toFixed(2)}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                                EXECUTED
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            </section>
+
+          </main>
+
+          {/* ================= 4. RESPONSIVE CONFIRMATION TOAST ================= */}
+          {toastMsg && (
+            <div className="fixed bottom-5 right-5 z-50 bg-[#162032] border border-cyan-500/50 text-slate-100 px-4 py-3 rounded-xl shadow-2xl text-xs font-mono flex items-center space-x-2 animate-bounce">
+              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+              <span>{toastMsg}</span>
+            </div>
+          )}
+
+          {/* Footer note */}
+          <footer className="text-center py-3 text-[11px] text-slate-500 font-mono border-t border-slate-800/80 bg-[#090d16]">
+            TradeZen Platform • Built with React & Chart.js for Palak Pal Portfolio Submission
+          </footer>
+
+        </div>
+      );
+    }
+
+    // --- CHART.JS COMPONENT (Using React useRef & useEffect) ---
+    function StockChartJs({ currentStock }) {
+      const canvasRef = useRef(null);
+      const chartInstanceRef = useRef(null);
+
+      useEffect(() => {
+        if (!canvasRef.current) return;
+
+        const ctx = canvasRef.current.getContext('2d');
+        const isUp = currentStock.change >= 0;
+        const lineColor = isUp ? '#10b981' : '#f43f5e';
+        const fillColor = isUp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)';
+
+        // Clean up previous chart instance to prevent canvas duplication & memory leaks
+        if (chartInstanceRef.current) {
+          chartInstanceRef.current.destroy();
+        }
+
+        // Initialize new Chart.js Line Chart
+        chartInstanceRef.current = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Today'],
+            datasets: [{
+              label: `${currentStock.symbol} Price (₹)`,
+              data: currentStock.history,
+              borderColor: lineColor,
+              backgroundColor: fillColor,
+              borderWidth: 2.5,
+              tension: 0.35, // Smooth Bezier curve
+              fill: true,
+              pointBackgroundColor: lineColor,
+              pointBorderColor: '#0b0f19',
+              pointBorderWidth: 1.5,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#1e293b',
+                titleColor: '#94a3b8',
+                bodyColor: '#f8fafc',
+                borderColor: '#334155',
+                borderWidth: 1,
+                padding: 10,
+                callbacks: {
+                  label: function(context) {
+                    return ` Price: ₹${context.raw.toFixed(2)}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(51, 65, 85, 0.25)' },
+                ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } }
+              },
+              y: {
+                grid: { color: 'rgba(51, 65, 85, 0.25)' },
+                ticks: {
+                  color: '#94a3b8',
+                  font: { family: 'JetBrains Mono', size: 10 },
+                  callback: function(value) { return '₹' + value; }
+                }
+              }
+            }
+          }
+        });
+
+        // Cleanup on unmount or stock update
+        return () => {
+          if (chartInstanceRef.current) {
+            chartInstanceRef.current.destroy();
+          }
+        };
+      }, [currentStock.symbol, currentStock.price]);
+
+      return <canvas ref={canvasRef} />;
+    }
+
+    // Mount to Root
+    ReactDOM.createRoot(document.getElementById('root')).render(<TradeZenApp />);
+  </script>
+</body>
+</html>
